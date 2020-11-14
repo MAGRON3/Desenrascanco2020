@@ -33,6 +33,7 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 import auth from '@react-native-firebase/auth';
+import database from '@react-native-firebase/database';
 
 const App: () => React$Node = () => {
 
@@ -54,8 +55,8 @@ const App: () => React$Node = () => {
   if (initializing) return null;
 
    state = {
-          UserEmail: 'jane.doe@example.com',
-          UserPassword: 'SuperSecretPassword!'
+          UserEmail: '',
+          UserPassword: ''
    }
 
   if (!user) {
@@ -64,15 +65,27 @@ const App: () => React$Node = () => {
     );
   }
 
+  database()
+    .ref('/users/123')
+    .on('value', snapshot => {
+      console.log('User data: ', snapshot.val());
+    });
+
   return (
     <View>
       <Text>Welcome {user.email}</Text>
-        <View>
-          <Button
-            title="Exit"
-            onPress={() => ExitAccount()}
-          />
-        </View>
+      <View>
+        <Button
+          title="Exit"
+          onPress={() => ExitAccount()}
+        />
+      </View>
+      <View>
+        <Button
+          title="Push"
+          onPress={() => WriteDataBase()}
+        />
+      </View>
     </View>
   );
 };
@@ -131,6 +144,16 @@ const App: () => React$Node = () => {
       .then(() => console.log('User signed out!'));
     }
 
+    function WriteDataBase()
+    {
+        database()
+          .ref('/users/1234')
+          .set({
+            name: 'Ada Lovelace',
+            age: 31,
+          })
+          .then(() => console.log('Data set.'));
+    }
 
 class LoginActivity extends Component {
    state = {
