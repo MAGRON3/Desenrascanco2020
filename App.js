@@ -97,6 +97,7 @@ const App: () => React$Node = () => {
       });
     }
 
+
     function CreateNewAccount(email,password)
     {
     auth()
