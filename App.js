@@ -65,11 +65,21 @@ const App: () => React$Node = () => {
     );
   }
 
-  database()
-    .ref('/users/123')
-    .on('value', snapshot => {
-      console.log('User data: ', snapshot.val());
-    });
+
+   useEffect(() => {
+     const onChildAdd = database()
+       .ref('/users')
+       .on('child_added', snapshot => {
+         console.log('A new node has been added', snapshot.val());
+       });
+
+     // Stop listening for updates when no longer required
+     return () =>
+       database()
+         .ref('/users')
+         .off('child_added', onChildAdd);
+   }, []);
+
 
   return (
     <View>
