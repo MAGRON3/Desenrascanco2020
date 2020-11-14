@@ -6,7 +6,11 @@
  * @flow strict-local
  */
 
-import React , { useState, useEffect }  from 'react';
+import React ,
+{ Component,
+  useState,
+  useEffect
+}  from 'react';
 
 import {
   SafeAreaView,
@@ -15,6 +19,10 @@ import {
   View,
   Text,
   StatusBar,
+  Button,
+  Alert,
+  TouchableOpacity,
+  TextInput,
 } from 'react-native';
 
 import {
@@ -27,23 +35,6 @@ import {
 import auth from '@react-native-firebase/auth';
 
 const App: () => React$Node = () => {
-
-auth()
-  .signInWithEmailAndPassword('jane.doe@example.com', 'SuperSecretPassword!')
-  .then(() => {
-    console.log('User account created & signed in!');
-  })
-  .catch(error => {
-    if (error.code === 'auth/email-already-in-use') {
-      console.log('That email address is already in use!');
-    }
-
-    if (error.code === 'auth/invalid-email') {
-      console.log('That email address is invalid!');
-    }
-
-    console.error(error);
-  });
 
   // Set an initializing state whilst Firebase connects
   const [initializing, setInitializing] = useState(true);
@@ -62,9 +53,54 @@ auth()
 
   if (initializing) return null;
 
+   state = {
+          UserEmail: 'jane.doe@example.com',
+          UserPassword: 'SuperSecretPassword!'
+   }
+
   if (!user) {
-  auth()
-    .createUserWithEmailAndPassword('jane.doe@example.com', 'SuperSecretPassword!')
+    return (
+        <Inputs />
+    );
+  }
+
+  return (
+    <View>
+      <Text>Welcome {user.email}</Text>
+        <View>
+          <Button
+            title="Exit"
+            onPress={() => ExitAccount()}
+          />
+        </View>
+    </View>
+  );
+};
+
+    function authorization(email,password)
+    {
+    auth()
+      .signInWithEmailAndPassword(email,password)
+      .then(() => {
+        Alert.alert('User account Signed in!');
+      })
+      .catch(error => {
+        if (error.code === 'auth/email-already-in-use') {
+          console.log('That email address is already in use!');
+        }
+
+        if (error.code === 'auth/invalid-email') {
+          console.log('That email address is invalid!');
+        }
+
+        console.error(error);
+      });
+    }
+
+    function CreateNewAccount(email,password)
+    {
+    auth()
+    .createUserWithEmailAndPassword(email,password)
     .then(() => {
       console.log('User account created & signed in!');
     })
@@ -79,103 +115,77 @@ auth()
 
       console.error(error);
     });
-    return (
-      <View>
-        <Text>Login</Text>
-      </View>
-    );
-  }
+    }
 
-  return (
-    <View>
-      <Text>Welcome {user.email}</Text>
-    </View>
-  );
+    function ExitAccount()
+    {
+    auth()
+      .signOut()
+      .then(() => console.log('User signed out!'));
+    }
 
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
-};
+class Inputs extends Component {
+   state = {
+      email: '',
+      password: ''
+   }
+   handleEmail = (text) => {
+      this.setState({ email: text })
+   }
+   handlePassword = (text) => {
+      this.setState({ password: text })
+   }
+   login = (email, pass) => {
+      authorization(email,pass)
+   }
+   render() {
+      return (
+         <View style = {styles.container}>
+            <TextInput style = {styles.input}
+               underlineColorAndroid = "transparent"
+               placeholder = "Email"
+               placeholderTextColor = "#9a73ef"
+               autoCapitalize = "none"
+               onChangeText = {this.handleEmail}/>
+
+            <TextInput style = {styles.input}
+               underlineColorAndroid = "transparent"
+               placeholder = "Password"
+               placeholderTextColor = "#9a73ef"
+               autoCapitalize = "none"
+               onChangeText = {this.handlePassword}/>
+
+            <TouchableOpacity
+               style = {styles.submitButton}
+               onPress = {
+                  () => this.login(this.state.email, this.state.password)
+               }>
+               <Text style = {styles.submitButtonText}> Submit </Text>
+            </TouchableOpacity>
+         </View>
+      )
+   }
+}
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
-  },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
-  },
-});
+   container: {
+      paddingTop: 23
+   },
+   input: {
+      margin: 15,
+      height: 40,
+      borderColor: '#7a42f4',
+      borderWidth: 1
+   },
+   submitButton: {
+      backgroundColor: '#7a42f4',
+      padding: 10,
+      margin: 15,
+      height: 40,
+   },
+   submitButtonText:{
+      color: 'white'
+   }
+})
 
 export default App;
