@@ -71,6 +71,7 @@ const App: () => React$Node = () => {
       console.log('User data: ', snapshot.val());
     });
 
+
   return (
     <View>
       <Text>Welcome {user.email}</Text>
