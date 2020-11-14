@@ -60,7 +60,7 @@ const App: () => React$Node = () => {
 
   if (!user) {
     return (
-        <Inputs />
+        <LoginActivity />
     );
   }
 
@@ -79,6 +79,9 @@ const App: () => React$Node = () => {
 
     function authorization(email,password)
     {
+    if (!email)return;
+    if (!password)return;
+
     auth()
       .signInWithEmailAndPassword(email,password)
       .then(() => {
@@ -100,6 +103,9 @@ const App: () => React$Node = () => {
 
     function CreateNewAccount(email,password)
     {
+    if (!email)return;
+    if (!password)return;
+
     auth()
     .createUserWithEmailAndPassword(email,password)
     .then(() => {
@@ -125,7 +131,8 @@ const App: () => React$Node = () => {
       .then(() => console.log('User signed out!'));
     }
 
-class Inputs extends Component {
+
+class LoginActivity extends Component {
    state = {
       email: '',
       password: ''
@@ -138,6 +145,9 @@ class Inputs extends Component {
    }
    login = (email, pass) => {
       authorization(email,pass)
+   }
+   createAcc = (email, pass) => {
+      CreateNewAccount(email,pass)
    }
    render() {
       return (
@@ -162,6 +172,14 @@ class Inputs extends Component {
                   () => this.login(this.state.email, this.state.password)
                }>
                <Text style = {styles.submitButtonText}> Submit </Text>
+
+            </TouchableOpacity>
+            <TouchableOpacity
+               style = {styles.submitButton}
+               onPress = {
+                  () => this.createAcc(this.state.email, this.state.password)
+               }>
+               <Text style = {styles.submitButtonText}> Register </Text>
             </TouchableOpacity>
          </View>
       )
