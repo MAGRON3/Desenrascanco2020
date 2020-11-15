@@ -9,7 +9,7 @@
 import React ,
 { Component,
   useState,
-  useEffect
+  useEffect,
 }  from 'react';
 
 import {
@@ -23,6 +23,7 @@ import {
   Alert,
   TouchableOpacity,
   TextInput,
+  FlatList,
 } from 'react-native';
 
 import {
@@ -35,9 +36,74 @@ import {
 import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
 
+var UserName = 'empty';
+var UserHearts = 0;
+
+var DATA = [
+  {
+    name: 'den5553_yandex_ru',
+    hearts: 6,
+  },
+  {
+    name: 'Second Item',
+     hearts: 0,
+  },
+  {
+    name: 'Third Item',
+     hearts: 0,
+  },
+];
+
+const Item = ({ item, onPress, style }) => (
+  <TouchableOpacity onPress={onPress} style={[styleslist.item, style]}>
+    <Text style={styleslist.title}>{item.name}</Text>
+  </TouchableOpacity>
+);
+
+
+
 const App: () => React$Node = () => {
 
+  const renderItem = ({ item }) => {
+    const backgroundColor = item.name === selectedId ? "#6e3b6e" : (item.hearts >>> 0 ? "#DC143C" : "#98FB98") ;
+
+
+    function StillHeart(username)
+    {
+        var Hearts = 0;
+        database()
+          .ref('/users/' + username)
+          .once('value')
+          .then(snapshot => {
+            console.log('UserHearts.',snapshot.val().hearts)
+            Hearts = snapshot.val().hearts;
+            if (Hearts > 0)
+            {
+               Hearts--;
+               database()
+                 .ref('/users/' + username)
+                 .update({
+                   hearts: Hearts,
+                 })
+                 .then(() => {
+                    console.log('Data updated.');
+                 })
+            }
+          });
+        setSelectedId(item.name);
+    }
+
+    return (
+      <Item
+        item={item}
+        onPress={() => StillHeart(item.name)}
+        style={{ backgroundColor }}
+      />
+    );
+  };
+
   // Set an initializing state whilst Firebase connects
+  const [selectedId, setSelectedId] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState();
 
@@ -65,84 +131,137 @@ const App: () => React$Node = () => {
     );
   }
 
-  database()
-    .ref('/users/123')
-    .on('value', snapshot => {
-      console.log('User data: ', snapshot.val());
-    });
-
+   console.log('render');
 
   return (
-    <View>
-      <Text>Welcome {user.email}</Text>
+
+    <View style = {stylesMain.container}>
+      <Text style = {stylesMain.text}>Welcome {user.email}</Text>
+      <Text style = {stylesMain.text}>You have {0} hearts</Text>
       <View>
-        <Button
-          title="Exit"
-          onPress={() => ExitAccount()}
-        />
+        <TouchableOpacity
+           style = {stylesMain.submitButton}
+           onPress={() => ExitAccount()}>
+           <Text style = {stylesMain.submitButtonText}> Exit </Text>
+        </TouchableOpacity>
       </View>
-      <View>
-        <Button
-          title="Push"
-          onPress={() => WriteDataBase()}
+      <View style = {stylesMain.containerlist}>
+        <FlatList
+          data={DATA}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.title}
+          extraData={selectedId}
         />
-      </View>
+        </View>
     </View>
   );
 };
 
+    function parserMyData(data)
+    {
+        UserHearts = data.hearts;
+    }
+
+    function parserUser(usersname)
+    {
+
+    }
+
+    function subscribe()
+    {
+        database()
+          .ref('/users/' + UserName)
+          .on('value', snapshot => {
+            console.log('User data: ', snapshot.val());
+            parserMyData(snapshot.val());
+          });
+
+        database()
+          .ref('/users/')
+          .on('value', snapshot => {
+            console.log('User: ', snapshot.val());
+            parserUser (snapshot.val());
+          });
+    }
+
     function authorization(email,password)
     {
-    if (!email)return;
-    if (!password)return;
+        if (!email)return;
+        if (!password)return;
 
-    auth()
-      .signInWithEmailAndPassword(email,password)
-      .then(() => {
-        Alert.alert('User account Signed in!');
-      })
-      .catch(error => {
-        if (error.code === 'auth/email-already-in-use') {
-          console.log('That email address is already in use!');
-        }
 
-        if (error.code === 'auth/invalid-email') {
-          console.log('That email address is invalid!');
-        }
+        auth()
+          .signInWithEmailAndPassword(email,password)
+          .then(() => {
+            email = email.replace('@','_');
+            email = email.replace('.','_');
+            UserName = email;
+            subscribe();
+            Alert.alert('User account Signed in!');
+          })
+          .catch(error => {
+            if (error.code === 'auth/email-already-in-use') {
+              console.log('That email address is already in use!');
+            }
 
-        console.error(error);
-      });
+            if (error.code === 'auth/invalid-email') {
+              console.log('That email address is invalid!');
+            }
+
+            console.error(error);
+          });
     }
 
 
     function CreateNewAccount(email,password)
     {
-    if (!email)return;
-    if (!password)return;
+        if (!email)return;
+        if (!password)return;
 
-    auth()
-    .createUserWithEmailAndPassword(email,password)
-    .then(() => {
-      console.log('User account created & signed in!');
-    })
-    .catch(error => {
-      if (error.code === 'auth/email-already-in-use') {
-        console.log('That email address is already in use!');
-      }
+        auth()
+        .createUserWithEmailAndPassword(email,password)
+        .then(() => {
 
-      if (error.code === 'auth/invalid-email') {
-        console.log('That email address is invalid!');
-      }
+        email = email.replace('@','_');
+        email = email.replace('.','_');
+        UserName = email;
+        database()
+          .ref('/users/'+ UserName)
+          .set({
+            name: UserName,
+            hearts: 10,
+          })
+          .then(() => console.log('Data set.'));
+          console.log('User account created & signed in!');
+         subscribe();
+        })
+        .catch(error => {
+          if (error.code === 'auth/email-already-in-use') {
+            console.log('That email address is already in use!');
+          }
 
-      console.error(error);
-    });
+          if (error.code === 'auth/invalid-email') {
+            console.log('That email address is invalid!');
+          }
+
+          console.error(error);
+        });
     }
 
     function ExitAccount()
     {
-    auth()
-      .signOut()
-      .then(() => console.log('User signed out!'));
+        auth()
+          .signOut()
+          .then(() =>
+          {
+            database()
+            .ref('/users/' + UserName)
+            .off('value');
+            database()
+            .ref('/users/')
+            .off('value');
+            console.log('User signed out!');
+          });
     }
 
     function WriteDataBase()
@@ -175,15 +294,15 @@ class LoginActivity extends Component {
    }
    render() {
       return (
-         <View style = {styles.container}>
-            <TextInput style = {styles.input}
+         <View style = {stylesLogin.container}>
+            <TextInput style = {stylesLogin.input}
                underlineColorAndroid = "transparent"
                placeholder = "Email"
                placeholderTextColor = "#9a73ef"
                autoCapitalize = "none"
                onChangeText = {this.handleEmail}/>
 
-            <TextInput style = {styles.input}
+            <TextInput style = {stylesLogin.input}
                underlineColorAndroid = "transparent"
                placeholder = "Password"
                placeholderTextColor = "#9a73ef"
@@ -191,30 +310,30 @@ class LoginActivity extends Component {
                onChangeText = {this.handlePassword}/>
 
             <TouchableOpacity
-               style = {styles.submitButton}
+               style = {stylesLogin.submitButton}
                onPress = {
                   () => this.login(this.state.email, this.state.password)
                }>
-               <Text style = {styles.submitButtonText}> Submit </Text>
+               <Text style = {stylesLogin.submitButtonText}> Submit </Text>
 
             </TouchableOpacity>
             <TouchableOpacity
-               style = {styles.submitButton}
+               style = {stylesLogin.submitButton}
                onPress = {
                   () => this.createAcc(this.state.email, this.state.password)
                }>
-               <Text style = {styles.submitButtonText}> Register </Text>
+               <Text style = {stylesLogin.submitButtonText}> Register </Text>
             </TouchableOpacity>
          </View>
       )
    }
 }
 
-const styles = StyleSheet.create({
+const stylesLogin = StyleSheet.create({
    container: {
       paddingTop: 23
    },
-   input: {
+   html : {
       margin: 15,
       height: 40,
       borderColor: '#7a42f4',
@@ -229,6 +348,48 @@ const styles = StyleSheet.create({
    submitButtonText:{
       color: 'white'
    }
-})
+});
+
+const stylesMain = StyleSheet.create({
+   container: {
+      paddingTop: 23,
+   },
+  containerlist: {
+        paddingTop: 23,
+        marginVertical: 10,
+     },
+   text: {
+      margin: 15,
+      height: 20,
+      marginVertical: 0,
+   },
+   submitButton: {
+      backgroundColor: '#7a42f4',
+      padding: 10,
+      margin: 15,
+      height: 40,
+      marginVertical: 5,
+   },
+   submitButtonText:{
+      color: 'white'
+   }
+});
+
+const styleslist = StyleSheet.create({
+  container: {
+    flex: 1,
+    marginTop: StatusBar.currentHeight || 0,
+  },
+  item: {
+    margin: 15,
+    height: 50,
+    padding: 10,
+    marginVertical: 4,
+    marginHorizontal: 16,
+  },
+  title: {
+    fontSize: 20,
+  },
+});
 
 export default App;
