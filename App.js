@@ -36,27 +36,9 @@ import {
 import auth from '@react-native-firebase/auth';
 import database from '@react-native-firebase/database';
 
-var UserName = 'empty';
-var UserHearts = 0;
-
-var DATA = [
-  {
-    name: 'den5553_yandex_ru',
-    hearts: 6,
-  },
-  {
-    name: 'Second Item',
-     hearts: 0,
-  },
-  {
-    name: 'Third Item',
-     hearts: 0,
-  },
-];
-
 const Item = ({ item, onPress, style }) => (
   <TouchableOpacity onPress={onPress} style={[styleslist.item, style]}>
-    <Text style={styleslist.title}>{item.name}</Text>
+    <Text style={styleslist.title}>{item.hearts}♥ {item.name}</Text>
   </TouchableOpacity>
 );
 
@@ -64,48 +46,13 @@ const Item = ({ item, onPress, style }) => (
 
 const App: () => React$Node = () => {
 
-  const renderItem = ({ item }) => {
-    const backgroundColor = item.name === selectedId ? "#6e3b6e" : (item.hearts >>> 0 ? "#DC143C" : "#98FB98") ;
-
-
-    function StillHeart(username)
-    {
-        var Hearts = 0;
-        database()
-          .ref('/users/' + username)
-          .once('value')
-          .then(snapshot => {
-            console.log('UserHearts.',snapshot.val().hearts)
-            Hearts = snapshot.val().hearts;
-            if (Hearts > 0)
-            {
-               Hearts--;
-               database()
-                 .ref('/users/' + username)
-                 .update({
-                   hearts: Hearts,
-                 })
-                 .then(() => {
-                    console.log('Data updated.');
-                 })
-            }
-          });
-        setSelectedId(item.name);
-    }
-
-    return (
-      <Item
-        item={item}
-        onPress={() => StillHeart(item.name)}
-        style={{ backgroundColor }}
-      />
-    );
-  };
-
   // Set an initializing state whilst Firebase connects
-  const [selectedId, setSelectedId] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState();
+
+  const [UserName, setUserName] = useState("empty");
+  const [UserHearts, setUserHearts] = useState(0);
+  const [ListUsers, setListUsers] = useState([]);
 
   // Handle user state changes
   function onAuthStateChanged(user) {
@@ -113,58 +60,15 @@ const App: () => React$Node = () => {
     if (initializing) setInitializing(false);
   }
 
-  useEffect(() => {
-    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
-  }, []);
-
-  if (initializing) return null;
-
-   state = {
-          UserEmail: '',
-          UserPassword: ''
-   }
-
-  if (!user) {
-    return (
-        <LoginActivity />
-    );
-  }
-
-   console.log('render');
-
-  return (
-
-    <View style = {stylesMain.container}>
-      <Text style = {stylesMain.text}>Welcome {user.email}</Text>
-      <Text style = {stylesMain.text}>You have {0} hearts</Text>
-      <View>
-        <TouchableOpacity
-           style = {stylesMain.submitButton}
-           onPress={() => ExitAccount()}>
-           <Text style = {stylesMain.submitButtonText}> Exit </Text>
-        </TouchableOpacity>
-      </View>
-      <View style = {stylesMain.containerlist}>
-        <FlatList
-          data={DATA}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.title}
-          extraData={selectedId}
-        />
-        </View>
-    </View>
-  );
-};
-
     function parserMyData(data)
     {
-        UserHearts = data.hearts;
+        setUserHearts(data.hearts);
     }
 
     function parserUser(usersname)
     {
-
+        setListUsers(Object.values(usersname));
+        console.log(ListUsers);
     }
 
     function subscribe()
@@ -188,14 +92,12 @@ const App: () => React$Node = () => {
     {
         if (!email)return;
         if (!password)return;
-
-
         auth()
           .signInWithEmailAndPassword(email,password)
           .then(() => {
             email = email.replace('@','_');
             email = email.replace('.','_');
-            UserName = email;
+            setUserName(email);
             subscribe();
             Alert.alert('User account Signed in!');
           })
@@ -212,7 +114,6 @@ const App: () => React$Node = () => {
           });
     }
 
-
     function CreateNewAccount(email,password)
     {
         if (!email)return;
@@ -224,7 +125,7 @@ const App: () => React$Node = () => {
 
         email = email.replace('@','_');
         email = email.replace('.','_');
-        UserName = email;
+        setUserName(email);
         database()
           .ref('/users/'+ UserName)
           .set({
@@ -232,8 +133,8 @@ const App: () => React$Node = () => {
             hearts: 10,
           })
           .then(() => console.log('Data set.'));
+          subscribe();
           console.log('User account created & signed in!');
-         subscribe();
         })
         .catch(error => {
           if (error.code === 'auth/email-already-in-use') {
@@ -264,16 +165,39 @@ const App: () => React$Node = () => {
           });
     }
 
-    function WriteDataBase()
-    {
-        database()
-          .ref('/users/1234')
-          .set({
-            name: 'Ada Lovelace',
-            age: 31,
-          })
-          .then(() => console.log('Data set.'));
-    }
+
+  useEffect(() => {
+    const subscriber = auth().onAuthStateChanged(onAuthStateChanged);
+    return subscriber; // unsubscribe on unmount
+  }, []);
+
+  if (initializing) return null;
+
+   state = {
+          UserEmail: '',
+          UserPassword: ''
+   }
+
+  if (!user) {
+    return (
+        <LoginActivity
+         authorization = {authorization}
+         CreateNewAccount = {CreateNewAccount}
+         UserName = {UserName}
+         UserHearts = {UserHearts}
+         subscribe = {subscribe}/>
+    );
+  }
+
+  return (
+        <MainActivity
+        ExitAccount = {ExitAccount}
+        UserName = {UserName}
+        DATA = {ListUsers}
+        UserHearts = {UserHearts}
+        subscribe = {subscribe}/>
+  );
+};
 
 class LoginActivity extends Component {
    state = {
@@ -287,10 +211,10 @@ class LoginActivity extends Component {
       this.setState({ password: text })
    }
    login = (email, pass) => {
-      authorization(email,pass)
+      this.props.authorization(email,pass)
    }
    createAcc = (email, pass) => {
-      CreateNewAccount(email,pass)
+      this.props.CreateNewAccount(email,pass)
    }
    render() {
       return (
@@ -325,6 +249,110 @@ class LoginActivity extends Component {
                <Text style = {stylesLogin.submitButtonText}> Register </Text>
             </TouchableOpacity>
          </View>
+      )
+   }
+}
+
+
+  const renderItem = ( {item}, UserName,UserHearts ) => {
+    const backgroundColor = item.hearts >>> 0 ? "#DC143C" : "#DDA0DD";
+
+    function StillHeart(username)
+    {
+        if (username.name == UserName) return;
+
+        var Hearts = username.hearts;
+//        database()
+//          .ref('/users/' + username)
+//          .once('value')
+//          .then(snapshot => {
+//             console.log('UserHearts.',snapshot.val().hearts)
+//            Hearts = snapshot.val().hearts;
+//            if (Hearts > 0)
+//            {
+//               Hearts--;
+//               database()
+//                 .ref('/users/' + username)
+//                 .update({
+//                   hearts: Hearts,
+//                 })
+//                 .then(() => {
+//                    console.log('Heart stilled.');
+//                 })
+//
+////                 console.log("This user name:", this.props.UserName);
+////                database()
+////                 .ref('/users/' + this.props.UserName)
+////                 .update({
+////                   hearts: this.props.UserHearts + 1,
+////                 })
+////                 .then(() => {
+////                    console.log('Heart stilled.');
+////                 })
+//            }
+//          });
+
+          if (Hearts > 0)
+          {
+             Hearts--;
+             database()
+               .ref('/users/' + username.name)
+               .update({
+                 hearts: Hearts,
+               })
+               .then(() => {
+                  console.log('Heart stilled.');
+                  database()
+                   .ref('/users/' + UserName)
+                   .update({
+                     hearts: UserHearts + 1,
+                   })
+                   .then(() => {
+                      console.log('Heart stilled.');
+                   })
+               })
+          }
+      }
+
+    return (
+      <Item
+        item={item}
+        onPress={() => StillHeart(item)}
+        style={{ backgroundColor }}
+      />
+    );
+  };
+
+class MainActivity extends Component {
+
+  state = {
+        selectedId: ''
+     }
+
+   handleID = (newState) => {
+         this.setState({ selectedId: newState })
+      }
+   render() {
+      return (
+    <View style = {stylesMain.container}>
+      <Text style = {stylesMain.text}>Welcome {this.props.UserName}</Text>
+      <Text style = {stylesMain.text}>You have {this.props.UserHearts} hearts</Text>
+      <View>
+        <TouchableOpacity
+           style = {stylesMain.submitButton}
+           onPress={() => this.props.ExitAccount()}>
+           <Text style = {stylesMain.submitButtonText}> Exit </Text>
+        </TouchableOpacity>
+      </View>
+      <View style = {stylesMain.containerlist}>
+        <FlatList
+          data={this.props.DATA}
+          renderItem={(item) => renderItem(item, this.props.UserName,this.props.UserHearts)}
+          keyExtractor={(item) => item.name}
+          extraData={this.state.selectedId}
+        />
+        </View>
+    </View>
       )
    }
 }
